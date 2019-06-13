@@ -1,0 +1,49 @@
+#+begin_src elisp :exports none
+	(defun org-babel-lobo-sexpr-to-mathematica (var)
+		(cond ((listp var)
+					 (cond ((consp (cdr var))
+							 (concat (org-babel-lobo-sexpr-to-mathematica (first var))
+											 "["
+											 (mapconcat 'org-babel-lobo-sexpr-to-mathematica
+																	(subseq var 1)
+																	", ")
+											 "]"))
+						 (t (concat (org-babel-lobo-sexpr-to-mathematica (car var))
+										 "->"
+										 (org-babel-lobo-sexpr-to-mathematica (cdr var))))
+						 ))
+					((vectorp var)
+					 (concat
+						"{"
+						(mapconcat 'org-babel-lobo-sexpr-to-mathematica var ", ")
+						"}"))
+					((stringp var) (format "\"%s\"" var))
+					(t (format "%s" var))))
+
+	(defun org-babel-execute:lobopile (body param)
+		(org-babel-lobo-sexpr-to-mathematica	(car (read-from-string body)))
+		)
+
+	(defun org-babel-execute:lobo (body param)
+		(org-babel-execute:mathematica (org-babel-execute:lobopile body param) param)
+		)
+
+	(define-derived-mode lobo-mode emacs-lisp-mode
+		"lobo")
+#+end_src
+
+#+begin_src lobo :results file :var background=(plist-get (custom-face-attributes-get 'default nil) :background)
+	(Export "/tmp/duh.png"
+					(BarChart (Association (me . 4)
+																 (you . 9)
+																 (others . 1))
+										(ChartLabels . Automatic)
+										(Rule PlotTheme
+													(List "BackgroundColor"
+																(RGBColor background)))
+										))
+#+end_src
+
+#+RESULTS:
+[[file:/tmp/duh.png]]
+
