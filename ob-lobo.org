@@ -1,4 +1,4 @@
-#+begin_src elisp :exports none
+#+begin_src elisp :exports code
   (defun org-babel-lobo-sexpr-to-mathematica (var)
     (cond
      ((listp var)
@@ -43,3 +43,6 @@
                           (List "BackgroundColor"
                                 (RGBColor background)))))
 #+end_src
+
+#+RESULTS:
+[[file:/tmp/duh.png]]
