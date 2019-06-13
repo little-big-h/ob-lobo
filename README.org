@@ -15,4 +15,4 @@
  - *Pull requests are very welcome*
 
 ** A screenshot
-[[file:Screenshot.png][OB Lobo in actions]]
+[[./Screenshot.png]]
