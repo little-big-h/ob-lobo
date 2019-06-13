@@ -15,4 +15,6 @@
  - *Pull requests are very welcome*
 
 ** A screenshot
-[[./Screenshot.png]]
+@@html:<img width="90%" src="Screenshot.png"/>@@
+
+
