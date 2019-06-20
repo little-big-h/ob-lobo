@@ -1,26 +1,32 @@
 #+begin_src elisp :exports code
   (defun org-babel-lobo-sexpr-to-mathematica (var)
-    (cond
-     ((listp var)
-      (cond
-       ((consp (cdr var))
-        (concat (org-babel-lobo-sexpr-to-mathematica (first var))
-                "["
-                (mapconcat 'org-babel-lobo-sexpr-to-mathematica
-                           (subseq var 1)
-                           ", ")
-                "]"))
-       (t (concat (org-babel-lobo-sexpr-to-mathematica (car var))
-                  "->"
-                  (org-babel-lobo-sexpr-to-mathematica (cdr var))))))
-     ((vectorp var)
-      (concat "{"
-              (mapconcat 'org-babel-lobo-sexpr-to-mathematica
-                         var ", ")
-              "}"))
-     ((stringp var)
-      (format "\"%s\"" var))
-     (t (format "%s" var))))
+    (pcase var
+      ((and (pred vectorp)
+            v)
+       (concat "{"
+               (mapconcat #'org-babel-lobo-sexpr-to-mathematica
+                          v ", ")
+               "}"))
+      (`(quote [,lhs ,rhs])
+       (format "%s -> %s"
+               (org-babel-lobo-sexpr-to-mathematica lhs)
+               (org-babel-lobo-sexpr-to-mathematica rhs)))
+      (`(function ,(and (pred vectorp)
+                        rules))
+       (concat "<|"
+               (mapconcat #'org-babel-lobo-sexpr-to-mathematica
+                          rules ", ")
+               "|>"))
+      (`(,f . ,args)
+       (concat (org-babel-lobo-sexpr-to-mathematica f)
+               "["
+               (mapconcat 'org-babel-lobo-sexpr-to-mathematica
+                          args ", ")
+               "]"))
+      ((and (pred stringp) s) (format "\"%s\"" s))
+      ((and (pred symbolp) s) (format "%s" (symbol-name s)))
+      ((and (pred integerp) i) (format "%d" i))
+      ))
 
   (defun org-babel-execute:lobopile (body param)
     (org-babel-lobo-sexpr-to-mathematica (car (read-from-string body))))
@@ -34,15 +40,15 @@
 #+end_src
 
 #+begin_src lobo :results file :var background=(plist-get (custom-face-attributes-get 'default nil) :background)
-  (Export "/tmp/duh.png"
-          (BarChart (Association (me . 4)
-                                 (you . 9)
-                                 (others . 1))
-                    (ChartLabels . Automatic)
-                    (Rule PlotTheme
-                          (List "BackgroundColor"
-                                (RGBColor background)))))
+  (Export "/tmp/chart.png"
+          (BarChart #'['[me 4]
+                       '[you 9]
+                       '[others 1]]
+                    '[ChartLabels Automatic]
+                    '[PlotTheme ["BackgroundColor"
+                                 (RGBColor background)]]))
 #+end_src
 
 #+RESULTS:
-[[file:/tmp/duh.png]]
+[[file:/tmp/chart.png]]
+
