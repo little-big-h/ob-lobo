@@ -1,11 +1,18 @@
-#+begin_src elisp :exports code
+* Implementation
+
+#+begin_src elisp :exports code :results silent
   (defun org-babel-lobo-sexpr-to-mathematica (var)
     (pcase var
-      ((and (pred vectorp)
+      (`(function ,(and (pred listp) ;; quoted lists
+                        v))
+       (org-babel-lobo-sexpr-to-mathematica `(Function . ,v)))
+      (`(quote ,(and (pred listp) ;; quoted lists
+                     v))
+       (org-babel-lobo-sexpr-to-mathematica `(List . ,v)))
+      ((and (pred vectorp) ;; vectors
             v)
        (concat "{"
-               (mapconcat #'org-babel-lobo-sexpr-to-mathematica
-                          v ", ")
+               (mapconcat #'org-babel-lobo-sexpr-to-mathematica v ", ")
                "}"))
       (`(quote [,lhs ,rhs])
        (format "%s -> %s"
@@ -14,41 +21,104 @@
       (`(function ,(and (pred vectorp)
                         rules))
        (concat "<|"
-               (mapconcat #'org-babel-lobo-sexpr-to-mathematica
-                          rules ", ")
+               (mapconcat #'org-babel-lobo-sexpr-to-mathematica rules ", ")
                "|>"))
       (`(,f . ,args)
        (concat (org-babel-lobo-sexpr-to-mathematica f)
                "["
-               (mapconcat 'org-babel-lobo-sexpr-to-mathematica
-                          args ", ")
+               (mapconcat 'org-babel-lobo-sexpr-to-mathematica args ", ")
                "]"))
-      ((and (pred stringp) s) (format "\"%s\"" s))
-      ((and (pred symbolp) s) (format "%s" (symbol-name s)))
-      ((and (pred integerp) i) (format "%d" i))
-      ))
+      (`##"##")
+      ((and (pred stringp)
+            s)
+       (format "\"%s\"" s))
+      ((and (pred symbolp)
+            s)
+       (format "%s"
+               (symbol-name s)))
+      ((and (pred integerp)
+            i)
+       (format "%d" i))))
 
-  (defun org-babel-execute:lobopile (body param)
-    (org-babel-lobo-sexpr-to-mathematica (car (read-from-string body))))
+  (defun org-babel-execute:lobopile (body params)
+    (let* ((file-ext (cdr (assq :file-ext params)))
+           (body (car (read-from-string body))))
+      (org-babel-lobo-sexpr-to-mathematica (if file-ext
+                                               `(Export ,(org-babel-temp-file nil
+                                                                              (concat "." file-ext))
+                                                        ,body)
+                                             body))))
 
   (defun org-babel-execute:lobo (body param)
     (org-babel-execute:mathematica (org-babel-execute:lobopile body param)
                                    param))
 
-  (define-derived-mode lobo-mode emacs-lisp-mode
-    "lobo")
+  (define-derived-mode lobo-mode emacs-lisp-mode "lobo")
 #+end_src
 
-#+begin_src lobo :results file :var background=(plist-get (custom-face-attributes-get 'default nil) :background)
-  (Export "/tmp/chart.png"
-          (BarChart #'['[me 4]
-                       '[you 9]
-                       '[others 1]]
-                    '[ChartLabels Automatic]
-                    '[PlotTheme ["BackgroundColor"
-                                 (RGBColor background)]]))
+* Usage
+
+** Syntactic constructs
+
+*** Symbols
+#+begin_src lobo
+  x ;; just a symbol named x
 #+end_src
 
-#+RESULTS:
-[[file:/tmp/chart.png]]
+#+begin_src lobo
+  :x ;; just a symbol named :x
+#+end_src
+
+*** Lists
+  #+begin_src lobo
+    [x 9 "howdie"] ;; a list of three elements
+  #+end_src
+
+*** Rules
+  #+begin_src lobo
+    '[x 9] ;; a rule that transforms x to 9
+  #+end_src
+
+*** Associations
+  #+begin_src lobo
+    #'['[x 9]]
+  #+end_src
+
+*** Lambdas/Functions
+#+begin_src lobo
+  ;; This is an identity function:
+  #'(##) ;; <- #'( ) creates a lambda/function, ## is the argument list (or single argument)
+#+end_src
+
+** Complex examples
+
+*** Lambdas/functions
+
+  #+begin_src lobo
+    (Map ;;
+     #'([## (Power ## 2)]) ;; <- Map function
+     [1 2 3 4];; <- elisp vectors are translated to wolfram lists
+    )
+  #+end_src
+
+*** A complex example using the wolfram knowledge base
+  #+begin_src lobo
+    (Join ['("Name" "Capital" "Population") ;; <- quoted lists are also translated to wolfram lists
+           hline ;; <- symbols remain symbols
+           ]
+          (Map #'([(CountryData ##"Name")
+                   (CommonName (CountryData ##"CapitalCity"))
+                   (ToString (CountryData ##"Population"))])
+               (CountryData "G7")))
+  #+end_src
+
+*** A chart 
+  #+begin_src lobo :file-ext png :var background=(plist-get (custom-face-attributes-get 'default nil) :background) 
+    (BarChart #'['[me 4]
+                 '[you 9]
+                 '[others 1]]
+              '[ChartLabels Automatic]
+              '[PlotTheme ["BackgroundColor"
+                           (RGBColor background)]])
+  #+end_src
 
