@@ -7,7 +7,10 @@
    execution engine
  - This project tries to bring the two together by transpiling emacs
    lisp code into the wolfram language and running it using ob-mathematica
- - It is in an extremently early stage (I spent roughly two hours on
+ - I tried to find literals for Mathematica data structures that are
+   - readable by the emacs reader (so I can reuse it to parse lobo code)
+   - not already used in emacs lisp (so one could technically mix the two execution engines)
+ - It is in an extremently early stage (I spent roughly seven hours on
    it) but already useful to me
  - At some point, I will figure out how to package this up properly
    but for now, you can simply open the [[file:ob-lobo.org]]-file and
