@@ -66,10 +66,6 @@
   x ;; just a symbol named x
 #+end_src
 
-#+begin_src lobo
-  :x ;; just a symbol named :x
-#+end_src
-
 *** Lists
   #+begin_src lobo
     [x 9 "howdie"] ;; a list of three elements
