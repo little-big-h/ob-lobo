@@ -50,7 +50,8 @@
                                              body))))
 
   (defun org-babel-execute:lobo (body param)
-    (org-babel-execute:mathematica (org-babel-execute:lobopile body param)
+    (org-babel-execute:mathematica (concat "SetOptions[ $Output, FormatType -> InputForm ];\n"
+                                           (org-babel-execute:lobopile body param))
                                    param))
 
   (define-derived-mode lobo-mode emacs-lisp-mode "lobo")
