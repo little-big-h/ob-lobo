@@ -119,3 +119,15 @@
                            (RGBColor background)]])
   #+end_src
 
+*** Embedding an SVG chart
+
+  #+begin_src lobo :exports results :cache yes :results html
+    (StringTrim (StringReplace (ExportString (TimelinePlot [(Entity "HistoricalEvent" "WorldWar1")
+                                                           (Entity "HistoricalEvent" "WorldWar2")
+                                                           (Entity "HistoricalEvent" "VietnamWar")
+                                                           (Entity "HistoricalEvent" "KoreanWarBegins")])
+                                            "SVG")
+                              '[(Shortest (StringExpression __ "\n")) ""]
+                              1) "\n")
+  #+end_src
+
