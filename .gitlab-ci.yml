@@ -1,0 +1,8 @@
+image: holgerpirk/emacs_and_latex:latest
+
+ob-lobo:
+  script:
+    - emacs --batch -Q --eval '(with-current-buffer (find-file "ob-lobo.org") (org-babel-tangle))'
+  artifacts:
+    paths:
+      - ob-lobo.el

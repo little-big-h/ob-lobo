@@ -1,6 +1,6 @@
 * Implementation
 
-#+begin_src elisp :exports code :results silent
+#+begin_src elisp :exports code :results silent :tangle ob-lobo.el
   (defun org-babel-lobo-sexpr-to-mathematica (var)
     (pcase var
       (`(function ,(and (pred listp) ;; quoted lists
