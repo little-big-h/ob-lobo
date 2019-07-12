@@ -1,8 +1,15 @@
 image: holgerpirk/emacs_and_latex:latest
 
-ob-lobo:
+build:
+  stage: build
   script:
-    - emacs --batch -Q --eval '(with-current-buffer (find-file "ob-lobo.org") (org-babel-tangle))'
+    - emacs -Q --batch -l ob-tangle --eval "(dolist (file command-line-args-left) (with-current-buffer (find-file-noselect file) (org-babel-tangle)))" ob-lobo.org
   artifacts:
     paths:
       - ob-lobo.el
+      - ob-lobo-test.el
+
+test:
+  stage: test
+  script:
+    - emacs -batch -l ert -l ob-lobo.el -l ob-lobo-test.el -f ert-run-tests-batch-and-exit
