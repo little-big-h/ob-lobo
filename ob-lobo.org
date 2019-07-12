@@ -55,6 +55,29 @@
                                    param))
 
   (define-derived-mode lobo-mode emacs-lisp-mode "lobo")
+
+  (eval-after-load 'lispy
+    '(add-to-list 'lispy-eval-alist
+                 '(lobo-mode (lambda (duh)
+                               (org-babel-lobo-sexpr-to-mathematica (car (read-from-string (lispy--string-dwim)))))
+                             nil)))
+
+
+#+end_src
+
+
+* Tests
+
+#+begin_src elisp :results output :tangle ob-lobo-test.el
+  (ert-deftest lobopile-empty-list
+      ()
+    (should (string-equal (org-babel-execute:lobopile "[]" nil)
+                 "{}")))
+
+  (ert-deftest lobopile-list
+      ()
+    (should (string-equal (org-babel-execute:lobopile "[1 3 4]" nil)
+                 "{1, 3, 4}")))
 #+end_src
 
 * Usage
