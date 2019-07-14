@@ -1,34 +1,13 @@
 * Implementation
 
 #+begin_src elisp :exports code :results silent :tangle ob-lobo.el
-  (defun org-babel-lobo-sexpr-to-mathematica (var)
+  (defun mathemathica-fullform-sexpr-to-mexpr (var)
     (pcase var
-      (`(function ,(and (pred listp) ;; quoted lists
-                        v))
-       (org-babel-lobo-sexpr-to-mathematica `(Function . ,v)))
-      (`(quote ,(and (pred listp) ;; quoted lists
-                     v))
-       (org-babel-lobo-sexpr-to-mathematica `(List . ,v)))
-      ((and (pred vectorp) ;; vectors
-            v)
-       (concat "{"
-               (mapconcat #'org-babel-lobo-sexpr-to-mathematica v ", ")
-               "}"))
-      (`(quote [,lhs ,rhs])
-       (format "%s -> %s"
-               (org-babel-lobo-sexpr-to-mathematica lhs)
-               (org-babel-lobo-sexpr-to-mathematica rhs)))
-      (`(function ,(and (pred vectorp)
-                        rules))
-       (concat "<|"
-               (mapconcat #'org-babel-lobo-sexpr-to-mathematica rules ", ")
-               "|>"))
       (`(,f . ,args)
        (concat (org-babel-lobo-sexpr-to-mathematica f)
                "["
                (mapconcat 'org-babel-lobo-sexpr-to-mathematica args ", ")
                "]"))
-      (`##"##")
       ((and (pred stringp)
             s)
        (format "\"%s\"" s))
@@ -40,14 +19,52 @@
             i)
        (format "%d" i))))
 
+  (defun org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr (var)
+    (pcase var
+      (`(function ,(and (pred listp) ;; quoted lists
+                        v))
+       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(Function . ,v)) ;; Process as Fullform Expression
+       )
+      (`(quote ,(and (pred listp) ;; quoted lists
+                     v))
+       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(List . ,v)) ;; Process as Fullform Expression
+       )
+      ((and (pred vectorp) ;; vectors
+            v)
+       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(List . ,v)) ;; Process as Fullform Expression
+       )
+      (`(quote [,lhs ,rhs])
+       `(Rule ,(org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr lhs) ;;
+
+              ,(org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr rhs)))
+      (`(function ,(and (pred vectorp)
+                        rules))
+       (append '(Association)
+               (map 'list #'org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr rules)))
+      (`(,f . ,args)
+       (append (list (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr f))
+               (map 'list #'org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr args)))
+      ((and (pred stringp)
+            s) s)
+      ((and (pred symbolp)
+            s) s)
+      ((and (pred integerp)
+            i) i)))
+
+  (defun org-babel-execute:lobo-to-sexpr (body params)
+    (let* ((file-ext (cdr (assq :file-ext params)))
+           (body (car (read-from-string body))))
+      (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr body)))
+
   (defun org-babel-execute:lobopile (body params)
     (let* ((file-ext (cdr (assq :file-ext params)))
            (body (car (read-from-string body))))
-      (org-babel-lobo-sexpr-to-mathematica (if file-ext
-                                               `(Export ,(org-babel-temp-file nil
-                                                                              (concat "." file-ext))
-                                                        ,body)
-                                             body))))
+      (mathemathica-fullform-sexpr-to-mexpr 
+       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr (if file-ext
+                                                              `(Export ,(org-babel-temp-file nil
+                                                                                             (concat "." file-ext))
+                                                                       ,body)
+                                                            body)))))
 
   (defun org-babel-execute:lobo (body param)
     (org-babel-execute:mathematica (concat "SetOptions[ $Output, FormatType -> InputForm ];\n"
@@ -55,12 +72,13 @@
                                    param))
 
   (define-derived-mode lobo-mode emacs-lisp-mode "lobo")
+  (define-derived-mode lobopile-mode lobo-mode "lobo")
 
   (eval-after-load 'lispy
     '(add-to-list 'lispy-eval-alist
-                 '(lobo-mode (lambda (duh)
-                               (org-babel-lobo-sexpr-to-mathematica (car (read-from-string (lispy--string-dwim)))))
-                             nil)))
+                  '(lobo-mode (lambda (duh)
+                                (org-babel-lobo-sexpr-to-mathematica (car (read-from-string (lispy--string-dwim)))))
+                              nil)))
 
 
 #+end_src
@@ -72,12 +90,12 @@
   (ert-deftest lobopile-empty-list
       ()
     (should (string-equal (org-babel-execute:lobopile "[]" nil)
-                 "{}")))
+                 "List[]")))
 
   (ert-deftest lobopile-list
       ()
     (should (string-equal (org-babel-execute:lobopile "[1 3 4]" nil)
-                 "{1, 3, 4}")))
+                 "List[1, 3, 4]")))
 #+end_src
 
 * Usage
