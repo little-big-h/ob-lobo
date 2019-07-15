@@ -91,7 +91,7 @@
                                                             (concat "." file-ext))
                                       ,body)
                            body))))
-         (wstp-run wstp-connection fullform))))))
+         (wstp-run wstp-connection fullform)))))
 
   (define-derived-mode lobo-mode emacs-lisp-mode "lobo")
   (define-derived-mode lobopile-mode lobo-mode "lobo")
