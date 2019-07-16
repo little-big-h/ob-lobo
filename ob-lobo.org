@@ -80,8 +80,8 @@
     (case lobo-execution-engine-connection
       ('ob-mathematica
        (org-babel-execute:mathematica (concat "SetOptions[ $Output, FormatType -> InputForm ];\n"
-                                              (org-babel-execute:lobopile body param))
-                                      param))
+                                              (org-babel-execute:lobopile body params))
+                                      params))
       ('wstp
        (let* ((file-ext (cdr (assq :file-ext params)))
               (body (car (read-from-string body)))
