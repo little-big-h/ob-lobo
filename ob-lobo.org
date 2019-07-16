@@ -91,7 +91,14 @@
                                                             (concat "." file-ext))
                                       ,body)
                            body))))
-         (wstp-run wstp-connection fullform)))))
+         (wstp-run wstp-connection
+                   `(With ,(append '(List)
+                                   (map 'list
+                                        (lambda (pair)
+                                          `(Set ,(car pair)
+                                                ,(cdr pair)))
+                                        (org-babel--get-vars params)))
+                          ,fullform))))))
 
   (define-derived-mode lobo-mode emacs-lisp-mode "lobo")
   (define-derived-mode lobopile-mode lobo-mode "lobo")
