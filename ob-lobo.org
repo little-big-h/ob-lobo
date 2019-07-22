@@ -1,6 +1,18 @@
 * Implementation
 
 #+begin_src elisp :exports code :results silent :tangle ob-lobo.el
+  (defun get-buffer-local-wstp-connection ()
+    (when (not (boundp (make-local-variable 'wstp-connection)))
+      (message "creating new buffer-local wstp connection")
+      (set (make-local-variable 'wstp-connection)
+           (wstp-init "emacs" "-linkmode" "launch" "-linkname" "/Applications/Mathematica.app/Contents/MacOS/WolframKernel -wstp"))
+      (add-hook 'kill-buffer-hook
+                (lambda ()
+                  (wstp-end wstp-connection))
+                t
+                t))
+    wstp-connection)
+
   (defun mathemathica-fullform-sexpr-to-mexpr (var)
     (pcase var
       (`(,f . ,args)
@@ -91,7 +103,7 @@
                                                             (concat "." file-ext))
                                       ,body)
                            body))))
-         (wstp-run wstp-connection
+         (wstp-run (get-buffer-local-wstp-connection)
                    `(With ,(append '(List)
                                    (map 'list
                                         (lambda (pair)
