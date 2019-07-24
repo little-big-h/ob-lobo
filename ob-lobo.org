@@ -165,6 +165,15 @@
     (should (string-equal (org-babel-execute:lobopile "'((5 7) 9)" nil)
                           "List[List[5, 7], 9]")))
 
+  (ert-deftest lobopile-quoted-list-with-symbol
+      ()
+    (should (string-equal (org-babel-execute:lobopile "'(List (5 7) 9)" nil)
+                          "List[List, List[5, 7], 9]")))
+
+  (ert-deftest lobopile-quoted-list-with-nested-quoted-list
+      ()
+    (should (string-equal (org-babel-execute:lobopile "'('(5 7) 9)" nil)
+                          "List[Hold[List[5, 7]], 9]")))
 
 #+end_src
 
