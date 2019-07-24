@@ -32,31 +32,55 @@
             i)
        (format "%d" i))))
 
-  (defun org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr (var)
+  (defun org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr (var &optional context-is-quoted-list)
     (pcase var
-      (`(function ,(and (pred listp) ;; quoted lists
+      (`(function ,(and (pred listp) ;; unquoted lists in quoted context
+                        (guard context-is-quoted-list)
                         v))
-       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(Function . ,v)) ;; Process as Fullform Expression
+       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(List . ,v)
+                                                          context-is-quoted-list) ;; Process as Fullform Expression
+       )
+      (`(function ,(and (pred listp) ;; unquoted lists
+                        (guard (not context-is-quoted-list))
+                        v))
+       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(Function . ,v)
+                                                          context-is-quoted-list) ;; Process as Fullform Expression
        )
       (`(quote ,(and (pred listp) ;; quoted lists
                      v))
-       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(List . ,v)) ;; Process as Fullform Expression
+       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(List . ,v)
+                                                          t) ;; Process as Fullform Expression
        )
       ((and (pred vectorp) ;; vectors
             v)
-       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(List . ,v)) ;; Process as Fullform Expression
+       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(List . ,v)
+                                                          context-is-quoted-list) ;; Process as Fullform Expression
        )
       (`(quote [,lhs ,rhs])
-       `(Rule ,(org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr lhs) ;;
+       `(Rule ,(org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr lhs context-is-quoted-list) ;;
 
-              ,(org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr rhs)))
+              ,(org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr rhs context-is-quoted-list)))
       (`(function ,(and (pred vectorp)
                         rules))
        (append '(Association)
-               (map 'list #'org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr rules)))
+               (map 'list
+                    (lambda (var)
+                      (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr var context-is-quoted-list))
+                    org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr
+                    rules)))
+      ((and (guard context-is-quoted-list)
+            (pred listp)
+            (pred (lambda (e)
+                    (not (eq 'List (car e)))))
+            v)
+       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(List . ,v)
+                                                          t))
       (`(,f . ,args)
-       (append (list (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr f))
-               (map 'list #'org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr args)))
+       (append (list (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr f context-is-quoted-list))
+               (map 'list
+                    (lambda (var)
+                      (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr var context-is-quoted-list))
+                    args)))
       ((and (pred stringp)
             s) s)
       ((and (pred symbolp)
@@ -80,12 +104,11 @@
   (defun org-babel-execute:lobopile (body params)
     (let* ((file-ext (cdr (assq :file-ext params)))
            (body (car (read-from-string body)))
-           (fullform (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr
-                      (if file-ext
-                          `(Export ,(org-babel-temp-file nil
-                                                         (concat "." file-ext))
-                                   ,body)
-                        body))))
+           (fullform (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr (if file-ext
+                                                                            `(Export ,(org-babel-temp-file nil
+                                                                                                           (concat "." file-ext))
+                                                                                     ,body)
+                                                                          body))))
       (mathemathica-fullform-sexpr-to-mexpr fullform)))
 
   (defun org-babel-execute:lobo (body params)
@@ -97,18 +120,17 @@
       ('wstp
        (let* ((file-ext (cdr (assq :file-ext params)))
               (body (car (read-from-string body)))
-              (fullform (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr
-                         (if file-ext
-                             `(Export ,(org-babel-temp-file nil
-                                                            (concat "." file-ext))
-                                      ,body)
-                           body))))
+              (fullform (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr (if file-ext
+                                                                               `(Export ,(org-babel-temp-file nil
+                                                                                                              (concat "." file-ext))
+                                                                                        ,body)
+                                                                             body))))
          (wstp-run (get-buffer-local-wstp-connection)
                    `(With ,(append '(List)
                                    (map 'list
                                         (lambda (pair)
                                           `(Set ,(car pair)
-                                                ,(cdr pair)))
+                                                (quote ,(cdr pair))))
                                         (org-babel--get-vars params)))
                           ,fullform))))))
 
@@ -131,12 +153,19 @@
   (ert-deftest lobopile-empty-list
       ()
     (should (string-equal (org-babel-execute:lobopile "[]" nil)
-                 "List[]")))
+                          "List[]")))
 
   (ert-deftest lobopile-list
       ()
     (should (string-equal (org-babel-execute:lobopile "[1 3 4]" nil)
-                 "List[1, 3, 4]")))
+                          "List[1, 3, 4]")))
+
+  (ert-deftest lobopile-quoted-list
+      ()
+    (should (string-equal (org-babel-execute:lobopile "'((5 7) 9)" nil)
+                          "List[List[5, 7], 9]")))
+
+
 #+end_src
 
 * Usage
