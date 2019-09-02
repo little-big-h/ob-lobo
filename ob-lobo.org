@@ -48,8 +48,11 @@
        )
       (`(quote ,(and (pred listp) ;; quoted lists
                      v))
-       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(List . ,v)
-                                                          t) ;; Process as Fullform Expression
+       (let ((result (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr `(List . ,v)
+                                                                         t) ;; Process as Fullform Expression
+                     ))
+         (if context-is-quoted-list `(Hold ,result) result)
+         )
        )
       ((and (pred vectorp) ;; vectors
             v)
