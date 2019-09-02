@@ -66,7 +66,6 @@
                (map 'list
                     (lambda (var)
                       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr var context-is-quoted-list))
-                    org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr
                     rules)))
       ((and (guard context-is-quoted-list)
             (pred listp)
@@ -169,6 +168,16 @@
       ()
     (should (string-equal (org-babel-execute:lobopile "'(List (5 7) 9)" nil)
                           "List[List, List[5, 7], 9]")))
+
+  (ert-deftest lobopile-quoted-vector-becomes-rule
+      ()
+    (should (string-equal (org-babel-execute:lobopile "'[age 7]" nil)
+                          "Rule[age, 7]")))
+
+  (ert-deftest lobopile-function-quoted-vector-becomes-association
+      ()
+    (should (string-equal (org-babel-execute:lobopile "#'['[age 7]]" nil)
+                          "Association[Rule[age, 7]]")))
 
   (ert-deftest lobopile-quoted-list-with-nested-quoted-list
       ()
