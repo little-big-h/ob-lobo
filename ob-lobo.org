@@ -105,36 +105,43 @@
 
   (defun org-babel-execute:lobopile (body params)
     (let* ((file-ext (cdr (assq :file-ext params)))
+           (file (cdr (assq :file params)))
            (body (car (read-from-string body)))
-           (fullform (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr (if file-ext
-                                                                            `(Export ,(org-babel-temp-file nil
-                                                                                                           (concat "." file-ext))
-                                                                                     ,body)
-                                                                          body))))
+           (fullform (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr
+                      (cond (file `(Export ,file ,body))
+                            (file-ext
+                             `(Export ,(org-babel-temp-file nil
+                                                            (concat "." file-ext))
+                                      ,body))
+                            (t body)))))
       (mathemathica-fullform-sexpr-to-mexpr fullform)))
 
   (defun org-babel-execute:lobo (body params)
-    (case lobo-execution-engine-connection
-      ('ob-mathematica
-       (org-babel-execute:mathematica (concat "SetOptions[ $Output, FormatType -> InputForm ];\n"
-                                              (org-babel-execute:lobopile body params))
-                                      params))
-      ('wstp
-       (let* ((file-ext (cdr (assq :file-ext params)))
-              (body (car (read-from-string body)))
-              (fullform (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr (if file-ext
-                                                                               `(Export ,(org-babel-temp-file nil
-                                                                                                              (concat "." file-ext))
-                                                                                        ,body)
-                                                                             body))))
-         (wstp-run (get-buffer-local-wstp-connection)
-                   `(With ,(append '(List)
-                                   (map 'list
-                                        (lambda (pair)
-                                          `(Set ,(car pair)
-                                                (quote ,(cdr pair))))
-                                        (org-babel--get-vars params)))
-                          ,fullform))))))
+  (case lobo-execution-engine-connection
+    ('ob-mathematica
+     (org-babel-execute:mathematica (concat "SetOptions[ $Output, FormatType -> InputForm ];\n"
+                                            (org-babel-execute:lobopile body params))
+                                    (assq-delete-all :file (copy-alist params))))
+
+    ('wstp
+     (let* ((file-ext (cdr (assq :file-ext params)))
+            (file (cdr (assq :file params)))
+            (body (car (read-from-string body)))
+            (fullform (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr
+                       (cond (file `(Export ,file ,body))
+                             (file-ext
+                              `(Export ,(org-babel-temp-file nil
+                                                             (concat "." file-ext))
+                                       ,body))
+                             (t body)))))
+       (wstp-run (get-buffer-local-wstp-connection)
+                 `(With ,(append '(List)
+                                 (map 'list
+                                      (lambda (pair)
+                                        `(Set ,(car pair)
+                                              (quote ,(cdr pair))))
+                                      (org-babel--get-vars params)))
+                        ,fullform))))))
 
   (define-derived-mode lobo-mode emacs-lisp-mode "lobo")
   (define-derived-mode lobopile-mode lobo-mode "lobo")
