@@ -117,7 +117,7 @@
       (mathemathica-fullform-sexpr-to-mexpr fullform)))
 
   (defun org-babel-execute:lobo (body params)
-  (case lobo-execution-engine-connection
+  (cl-case lobo-execution-engine-connection
     ('ob-mathematica
      (org-babel-execute:mathematica (concat "SetOptions[ $Output, FormatType -> InputForm ];\n"
                                             (org-babel-execute:lobopile body params))
