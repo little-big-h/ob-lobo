@@ -101,7 +101,14 @@
   (defcustom lobo-execution-engine-connection 'ob-mathematica
     "The way we connect to mathematica"
     :type '(choice (const ob-mathematica)
-                   (const wstp)):group'lobo)
+                   (const wstp))
+    :group 'lobo)
+
+  (defcustom lobo-wstp-linkname-argument
+    "/Applications/Mathematica.app/Contents/MacOS/WolframKernel -wstp"
+    "The way we connect to mathematica"
+    :type 'string
+    :group 'lobo)
 
   (defun org-babel-execute:lobopile (body params)
     (let* ((file-ext (cdr (assq :file-ext params)))
