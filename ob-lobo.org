@@ -146,7 +146,8 @@
                                  (map 'list
                                       (lambda (pair)
                                         `(Set ,(car pair)
-                                              (quote ,(cdr pair))))
+                                              ,(org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr
+                                                `(quote , (cdr pair)))))
                                       (org-babel--get-vars params)))
                         ,fullform))))))
 
