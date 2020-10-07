@@ -66,7 +66,7 @@
       (`(function ,(and (pred vectorp)
                         rules))
        (append '(Association)
-               (map 'list
+               (cl-map 'list
                     (lambda (var)
                       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr var context-is-quoted-list))
                     rules)))
@@ -79,7 +79,7 @@
                                                           t))
       (`(,f . ,args)
        (append (list (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr f context-is-quoted-list))
-               (map 'list
+               (cl-map 'list
                     (lambda (var)
                       (org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr var context-is-quoted-list))
                     args)))
@@ -143,7 +143,7 @@
                              (t body)))))
        (wstp-run (get-buffer-local-wstp-connection)
                  `(With ,(append '(List)
-                                 (map 'list
+                                 (cl-map 'list
                                       (lambda (pair)
                                         `(Set ,(car pair)
                                               ,(org-babel-lobo-sexpr-to-mathmatica-fullform-sexpr
